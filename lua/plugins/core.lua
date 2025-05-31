@@ -1,23 +1,8 @@
 return {
-  {
-    "maxmx03/solarized.nvim",
-    lazy = false,
-    priority = 1000,
-    config = function()
-      vim.o.background = "light" -- or 'light'
-
-      vim.cmd.colorscheme("solarized")
-    end,
-  },
-  {
-    "pmizio/typescript-tools.nvim",
-    dependencies = { "nvim-lua/plenary.nvim", "neovim/nvim-lspconfig" },
-    opts = {},
-  },
+  ------------------------------------------------------------------------------
+  -- [ Configuration for included LazyVim packages ] --------------------
+  ------------------------------------------------------------------------------
   { "folke/flash.nvim", enabled = false },
-  -- {
-  --   "jesseduffield/lazygit",
-  -- },
   {
     "folke/noice.nvim",
     opts = {
@@ -73,11 +58,69 @@ return {
       },
       statuscolumn = { enabled = true },
       words = { enabled = true },
+      styles = {
+        terminal = {
+          height = 0.8,
+        },
+      },
     },
   },
   {
-    "tpope/vim-commentary",
-    desc = "This enables commenting with the command 'gc'",
+    "nvim-treesitter/nvim-treesitter",
+    opts = function(_, opts)
+      -- Extend the .env filetype pattern
+      vim.filetype.add({
+        pattern = {
+          -- Keep the original LazyVim one
+          ["%.env%.[%w_.-]+"] = "sh",
+          -- Add more patterns as needed:
+          ["%.envrc"] = "sh",
+          ["%.env%.example"] = "sh",
+          ["%.env%.local"] = "sh",
+        },
+      })
+    end,
+  },
+  {
+    -- We are using typescript-tools as language server for TypeScript
+    "neovim/nvim-lspconfig",
+    opts = {
+      servers = {
+        tsserver = false, -- disable LazyVim's default tsserver setup
+      },
+    },
+  },
+  {
+    "nvim-lualine/lualine.nvim",
+    opts = {
+      sections = {
+        lualine_c = {
+          {
+            "filename",
+            path = 1, -- 0 = just filename, 1 = relative path, 2 = absolute path
+          },
+        },
+        lualine_z = {}, -- hide clock
+      },
+    },
+  },
+  ------------------------------------------------------------------------------
+  -- [ Below packages do not come with LazyVim by default ] --------------------
+  ------------------------------------------------------------------------------
+  {
+    "maxmx03/solarized.nvim",
+    lazy = false,
+    priority = 1000,
+    config = function()
+      vim.o.background = "light" -- or 'light'
+
+      vim.cmd.colorscheme("solarized")
+    end,
+  },
+  {
+    "pmizio/typescript-tools.nvim",
+    dependencies = { "nvim-lua/plenary.nvim", "neovim/nvim-lspconfig" },
+    opts = {},
   },
   {
     "TrevorS/uuid-nvim",
@@ -95,54 +138,13 @@ return {
     },
   },
   { "mini.pairs", enabled = false },
-  -- I'm attempting to make long filenames readable without truncating them, but it's not working atm.
   {
-    "nvim-lualine/lualine.nvim",
-    dependencies = { "nvim-tree/nvim-web-devicons" },
-    sections = {
-      lualine_a = {
-        {
-          "filename",
-          file_status = true, -- Displays file status (readonly status, modified status)
-          newfile_status = false, -- Display new file status (new file means no write after created)
-          path = 0, -- 0: Just the filename
-          -- 1: Relative path
-          -- 2: Absolute path
-          -- 3: Absolute path, with tilde as the home directory
-          -- 4: Filename and parent dir, with tilde as the home directory
-
-          shorting_target = 80, -- Shortens path to leave 40 spaces in the window
-          -- for other components. (terrible name, any suggestions?)
-          symbols = {
-            modified = "[+]", -- Text to show when the file is modified.
-            readonly = "[-]", -- Text to show when the file is non-modifiable or readonly.
-            unnamed = "[No Name]", -- Text to show for unnamed buffers.
-            newfile = "[New]", -- Text to show for newly created file before first write
-          },
-        },
-      },
-    },
-  },
-  -- {
-  --   "akinsho/toggleterm.nvim",
-  --   config = function()
-  --     require("toggleterm").setup({
-  --       open_mapping = [[<c-/>]],
-  --       shade_terminals = false,
-  --       size = 50,
-  --       -- add --login so ~/.zprofile is loaded
-  --       -- https://vi.stackexchange.com/questions/16019/neovim-terminal-not-reading-bash-profile/16021#16021
-  --       shell = "zsh --login",
-  --     })
-  --   end,
-  --   keys = {
-  --     { [[<C-/>]] },
-  --   },
-  -- },
-  {
+    -- Allow for cs{[ to change surrounding { with [
     "tpope/vim-surround",
   },
   {
+    -- LazyVim comes with a built in <leader>gb git command which is not as good.
+    -- This shows hints as gutter annotations on the right side of the editor.
     "FabijanZulj/blame.nvim",
     config = function()
       require("blame").setup()
@@ -156,9 +158,6 @@ return {
         mode = { "n" },
       },
     },
-  },
-  {
-    "jose-elias-alvarez/null-ls.nvim",
   },
   {
     "yetone/avante.nvim",
@@ -205,19 +204,11 @@ return {
     },
   },
   {
-    "nvim-treesitter/nvim-treesitter",
-    opts = function(_, opts)
-      -- Extend the .env filetype pattern
-      vim.filetype.add({
-        pattern = {
-          -- Keep the original LazyVim one
-          ["%.env%.[%w_.-]+"] = "sh",
-          -- Add more patterns as needed:
-          ["%.envrc"] = "sh",
-          ["%.env%.example"] = "sh",
-          ["%.env%.local"] = "sh",
-        },
-      })
+    "OscarCreator/rsync.nvim",
+    build = "make",
+    dependencies = "nvim-lua/plenary.nvim",
+    config = function()
+      require("rsync").setup()
     end,
   },
 }
