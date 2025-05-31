@@ -20,6 +20,18 @@ return {
   -- },
   {
     "folke/noice.nvim",
+    opts = {
+      lsp = {
+        hover = {
+          enabled = true,
+          opts = {
+            border = "rounded",
+            max_width = 200,
+            max_height = 100,
+          },
+        },
+      },
+    },
     keys = {
       {
         "<C-f>",
@@ -191,5 +203,21 @@ return {
         ft = { "markdown", "Avante" },
       },
     },
+  },
+  {
+    "nvim-treesitter/nvim-treesitter",
+    opts = function(_, opts)
+      -- Extend the .env filetype pattern
+      vim.filetype.add({
+        pattern = {
+          -- Keep the original LazyVim one
+          ["%.env%.[%w_.-]+"] = "sh",
+          -- Add more patterns as needed:
+          ["%.envrc"] = "sh",
+          ["%.env%.example"] = "sh",
+          ["%.env%.local"] = "sh",
+        },
+      })
+    end,
   },
 }

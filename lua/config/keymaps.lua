@@ -12,3 +12,18 @@ vim.api.nvim_set_keymap(
   "<cmd>normal! gv<CR><cmd>lua vim.lsp.buf.code_action()<CR>",
   { noremap = true, silent = true, desc = "List fixes" }
 )
+
+vim.api.nvim_set_keymap("n", "<leader>rs", ":LspRestart<CR>", { desc = "Restart LSP" })
+
+-- Scroll Noice hover popup (down and up)
+vim.keymap.set({ "n", "i", "s" }, "<C-j>", function()
+  if not require("noice.lsp").scroll(4) then
+    return "<C-f>"
+  end
+end, { silent = true, expr = true, desc = "Scroll hover down" })
+
+vim.keymap.set({ "n", "i", "s" }, "<C-k>", function()
+  if not require("noice.lsp").scroll(-4) then
+    return "<C-b>"
+  end
+end, { silent = true, expr = true, desc = "Scroll hover up" })

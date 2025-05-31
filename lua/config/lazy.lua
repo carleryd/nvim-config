@@ -16,9 +16,9 @@ require("lazy").setup({
     -- { import = "lazyvim.plugins.extras.lang.json" },
     -- { import = "lazyvim.plugins.extras.ui.mini-animate" },
     -- This alongside prettier is causing bugs it seems. Two libs changing code at the same time.
-    -- { import = "lazyvim.plugins.extras.linting.eslint" },
+    { import = "lazyvim.plugins.extras.linting.eslint" },
     { import = "lazyvim.plugins.extras.formatting.prettier" },
-    { import = "lazyvim.plugins.extras.coding.copilot" },
+    -- { import = "lazyvim.plugins.extras.coding.copilot" },
     -- import/override with your plugins
     { import = "plugins" },
   },
@@ -48,4 +48,13 @@ require("lazy").setup({
       },
     },
   },
+})
+
+-- Disable Lazy's default root dir logic which changes when entering packages in mono-repos.
+-- https://github.com/LazyVim/LazyVim/discussions/952#discussioncomment-6254848
+vim.api.nvim_create_autocmd("User", {
+  pattern = "VeryLazy",
+  callback = function()
+    require("lazyvim.util").root.get = vim.loop.cwd
+  end,
 })
