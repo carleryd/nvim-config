@@ -2,7 +2,6 @@
 -- Default keymaps that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/keymaps.lua
 -- Add any additional keymaps here
 
--- vim.keymap.set("i", "<C-f>", "<C-u>", { desc = "LEFT" })
 vim.api.nvim_set_keymap("n", "<C-f>", "<C-u>", { noremap = true, silent = true })
 
 -- keymaps for visual mode (LazyVim style)

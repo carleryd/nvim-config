@@ -104,6 +104,17 @@ return {
       },
     },
   },
+  {
+    "saghen/blink.cmp",
+    opts = {
+      keymap = {
+        ["<C-j>"] = { "select_next", "fallback" },
+        ["<C-k>"] = { "select_prev", "fallback" },
+        ["<C-d>"] = { "scroll_documentation_down", "fallback" },
+        ["<C-f>"] = { "scroll_documentation_up", "fallback" },
+      },
+    },
+  },
   ------------------------------------------------------------------------------
   -- [ Below packages do not come with LazyVim by default ] --------------------
   ------------------------------------------------------------------------------
