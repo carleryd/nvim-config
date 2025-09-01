@@ -3,6 +3,8 @@
 -- Add any additional keymaps here
 
 vim.api.nvim_set_keymap("n", "<C-f>", "<C-u>", { noremap = true, silent = true })
+vim.keymap.set("n", "<C-j>", "<C-d>", { noremap = true, silent = true }) -- half-page down
+vim.keymap.set("n", "<C-k>", "<C-u>", { noremap = true, silent = true }) -- half-page up
 
 -- keymaps for visual mode (LazyVim style)
 vim.api.nvim_set_keymap(
@@ -26,3 +28,11 @@ vim.keymap.set({ "n", "i", "s" }, "<C-k>", function()
     return "<C-b>"
   end
 end, { silent = true, expr = true, desc = "Scroll hover up" })
+
+vim.keymap.set("n", "Q", "q", { noremap = true })
+
+-- Necessary to dismiss on "q" even if not inside of hover window
+vim.keymap.set("n", "q", "<cmd>Noice dismiss<CR>", {
+  desc = "Dismiss Noice popup",
+  silent = true,
+})
