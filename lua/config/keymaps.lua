@@ -5,6 +5,11 @@
 vim.api.nvim_set_keymap("n", "<C-f>", "<C-u>", { noremap = true, silent = true })
 vim.keymap.set("n", "<C-j>", "<C-d>", { noremap = true, silent = true }) -- half-page down
 vim.keymap.set("n", "<C-k>", "<C-u>", { noremap = true, silent = true }) -- half-page up
+-- vim.keymap.set("n", "<C-x>", function()
+--   vim.api.nvim_buf_delete(0, { force = false })
+-- end, { desc = "Delete current buffer" })
+
+vim.keymap.set({ "n", "i", "v" }, "<D-s>", "<cmd>w<CR>", { noremap = true, silent = true, desc = "Save buffer" })
 
 -- keymaps for visual mode (LazyVim style)
 vim.api.nvim_set_keymap(
