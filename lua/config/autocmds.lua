@@ -1,27 +1,24 @@
--- Autocmds are automatically loaded on the VeryLazy event
--- Default autocmds that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/autocmds.lua
--- Add any additional autocmds here
-
--- vim.api.nvim_create_autocmd("CursorHold", {
---   pattern = { "*" },
---   callback = function()
---     vim.lsp.buf.hover()
---     -- if not require("cmp").visible() then
---     --   local hover_fixed = function()
---     --     vim.api.nvim_command("set eventignore=CursorHold")
---     --     vim.api.nvim_command('autocmd CursorMoved ++once set eventignore=" " ')
---     --     vim.lsp.buf.hover()
---     --   end
---     --   hover_fixed()
---     -- end
---   end,
--- })
-
 -- Avoid focusing neo-tree when closing other windows
--- Only triggers when entering a neo-tree buffer, and only for non-floating windows
+-- Track if a window was just closed
+local window_just_closed = false
+
+vim.api.nvim_create_autocmd("WinClosed", {
+  callback = function()
+    window_just_closed = true
+    vim.defer_fn(function()
+      window_just_closed = false
+    end, 50)
+  end,
+})
+
 vim.api.nvim_create_autocmd("BufEnter", {
   pattern = "neo-tree *",
   callback = function()
+    -- Only redirect if we got here from a window close
+    if not window_just_closed then
+      return
+    end
+
     local win = vim.api.nvim_get_current_win()
     local config = vim.api.nvim_win_get_config(win)
 
