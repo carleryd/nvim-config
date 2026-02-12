@@ -3,6 +3,7 @@
 -- Add any additional keymaps here
 
 vim.api.nvim_set_keymap("n", "<C-f>", "<C-u>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "<C-f>", "<C-u>", { noremap = true, silent = true })
 -- vim.keymap.set("n", "<C-j>", "<C-d>", { noremap = true, silent = true }) -- half-page down
 -- vim.keymap.set("n", "<C-k>", "<C-u>", { noremap = true, silent = true }) -- half-page up
 -- vim.keymap.set("n", "<C-x>", function()
@@ -46,27 +47,3 @@ vim.keymap.set("n", "q", "<cmd>Noice dismiss<CR>", {
   silent = true,
 })
 
--- Toggle terminal height between default and full
-vim.keymap.set({ "n", "t" }, "<C-S-t>", function()
-  local term_win = nil
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
-    local buf = vim.api.nvim_win_get_buf(win)
-    if vim.bo[buf].buftype == "terminal" then
-      term_win = win
-      break
-    end
-  end
-
-  if term_win then
-    local config = vim.api.nvim_win_get_config(term_win)
-    local editor_height = vim.o.lines - vim.o.cmdheight - 1
-    local current_height = vim.api.nvim_win_get_height(term_win)
-
-    -- Toggle between ~30% height and ~90% height
-    if current_height < editor_height * 0.5 then
-      vim.api.nvim_win_set_height(term_win, math.floor(editor_height * 0.9))
-    else
-      vim.api.nvim_win_set_height(term_win, math.floor(editor_height * 0.3))
-    end
-  end
-end, { desc = "Toggle terminal height" })

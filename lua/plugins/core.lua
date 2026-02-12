@@ -64,13 +64,94 @@ return {
       },
       statuscolumn = { enabled = true },
       words = { enabled = true },
-      terminal = {
-        enabled = true,
-        -- win = {
-        --   position = "float",
-        --   width = 0.95,
-        --   height = 0.95,
-        -- },
+      terminal = { enabled = true },
+    },
+    init = function()
+      -- Terminal tab state
+      _G.snacks_term_ids = { "term1", "term2", "term3", "term4" }
+      _G.snacks_term_current = nil
+
+      -- Switch to a specific terminal tab (hide others, show this one)
+      _G.snacks_term_switch = function(id)
+        -- If same terminal is requested, just toggle it
+        if _G.snacks_term_current == id then
+          Snacks.terminal.toggle(nil, { win = { position = "bottom" }, id = id })
+          _G.snacks_term_current = nil
+          return
+        end
+
+        -- Hide current terminal if one is open
+        if _G.snacks_term_current then
+          local term = Snacks.terminal.get(nil, { id = _G.snacks_term_current })
+          if term and term:win() and term:win():valid() then
+            term:hide()
+          end
+        end
+
+        -- Show/create the requested terminal
+        Snacks.terminal.open(nil, { win = { position = "bottom" }, id = id })
+        _G.snacks_term_current = id
+      end
+    end,
+    keys = {
+      {
+        "<C-S-t>",
+        function()
+          -- Find the BOTTOM terminal (snacks), not claudecode's side terminal
+          -- Bottom terminal is wider (spans full width or most of it)
+          -- Claudecode side panel is only ~40% width
+          local term_win = nil
+          for _, w in ipairs(vim.api.nvim_list_wins()) do
+            local buf = vim.api.nvim_win_get_buf(w)
+            if vim.bo[buf].buftype == "terminal" then
+              local width = vim.api.nvim_win_get_width(w)
+              -- Bottom terminal should be wider than half the screen
+              if width > vim.o.columns * 0.5 then
+                term_win = w
+                break
+              end
+            end
+          end
+
+          if not term_win then
+            return
+          end
+
+          local cur_win = vim.api.nvim_get_current_win()
+          local h = vim.api.nvim_win_get_height(term_win)
+
+          -- Save and temporarily reduce winminheight to allow maximum expansion
+          local saved_wmh = vim.o.winminheight
+          vim.o.winminheight = 1
+
+          vim.api.nvim_set_current_win(term_win)
+
+          if h <= 15 then
+            -- Expand: wincmd _ fills all available vertical space
+            vim.cmd("wincmd _")
+          else
+            -- Collapse to small size
+            vim.cmd("resize 12")
+          end
+
+          vim.o.winminheight = saved_wmh
+          vim.api.nvim_set_current_win(cur_win)
+        end,
+        mode = { "n", "t" },
+        desc = "Toggle terminal height",
+      },
+      -- Multiple terminal tabs
+      { "<leader>t1", function() _G.snacks_term_switch("term1") end, mode = { "n", "t" }, desc = "Terminal 1" },
+      { "<leader>t2", function() _G.snacks_term_switch("term2") end, mode = { "n", "t" }, desc = "Terminal 2" },
+      { "<leader>t3", function() _G.snacks_term_switch("term3") end, mode = { "n", "t" }, desc = "Terminal 3" },
+      { "<leader>t4", function() _G.snacks_term_switch("term4") end, mode = { "n", "t" }, desc = "Terminal 4" },
+      {
+        "<leader>tt",
+        function()
+          Snacks.terminal.toggle(nil, { win = { position = "bottom" } })
+        end,
+        mode = { "n", "t" },
+        desc = "Toggle default terminal",
       },
     },
   },
@@ -219,12 +300,125 @@ return {
   -- [ Below packages do not come with LazyVim by default ] --------------------
   ------------------------------------------------------------------------------
   {
+    "coder/claudecode.nvim",
+    event = "VeryLazy",
+    dependencies = { "folke/snacks.nvim" },
+    config = function()
+      require("claudecode").setup({
+        terminal = {
+          split_side = "right",
+          split_width_percentage = 0.4,
+          provider = "snacks",
+        },
+        diff_opts = {
+          auto_close_on_accept = true,
+          vertical_split = true,
+        },
+      })
+
+      -- Keymaps matching opencode.nvim bindings
+
+      -- <C-a> - Ask/Send to Claude (like opencode's ask)
+      vim.keymap.set("n", "<C-a>", function()
+        -- Check if Claude terminal is visible using the plugin's API
+        local ok, terminal = pcall(require, "claudecode.terminal")
+        if not ok then
+          vim.notify("Failed to load claudecode.terminal", vim.log.levels.ERROR)
+          return
+        end
+
+        local bufnr = terminal.get_active_terminal_bufnr()
+        local is_visible = false
+        if bufnr then
+          local bufinfo = vim.fn.getbufinfo(bufnr)
+          is_visible = bufinfo and #bufinfo > 0 and #bufinfo[1].windows > 0
+        end
+
+        if not is_visible then
+          -- Claude is not visible, open it and add current line context
+          terminal.open()
+          vim.defer_fn(function()
+            local file = vim.fn.expand("%:p")
+            local line = vim.fn.line(".")
+            vim.cmd("ClaudeCodeAdd " .. file .. " " .. line .. " " .. line)
+          end, 100)
+        else
+          -- Claude is visible, send current line
+          vim.o.operatorfunc = "v:lua.claude_operator"
+          vim.cmd("normal! g@_")
+        end
+      end, { desc = "Send line to Claude or open Claude" })
+      vim.keymap.set("x", "<C-a>", "<cmd>ClaudeCodeSend<cr><cmd>ClaudeCodeFocus<cr>", { desc = "Send selection to Claude" })
+
+      -- <C-.> - Toggle Claude terminal (like opencode's toggle)
+      vim.keymap.set({ "n", "t" }, "<C-.>", "<cmd>ClaudeCode<cr>", { desc = "Toggle Claude" })
+
+      -- go - Operator to add range to Claude (like opencode's operator)
+      vim.keymap.set({ "n", "x" }, "go", function()
+        vim.o.operatorfunc = "v:lua.claude_operator"
+        return "g@"
+      end, { expr = true, desc = "Add range to Claude" })
+
+      vim.keymap.set("n", "goo", function()
+        vim.o.operatorfunc = "v:lua.claude_operator"
+        return "g@_"
+      end, { expr = true, desc = "Add line to Claude" })
+
+      -- Define the operator function globally
+      _G.claude_operator = function(motion_type)
+        local start_pos = vim.fn.getpos("'[")
+        local end_pos = vim.fn.getpos("']")
+        local start_line = start_pos[2]
+        local end_line = end_pos[2]
+        local file = vim.fn.expand("%:p")
+        vim.cmd("ClaudeCodeAdd " .. file .. " " .. start_line .. " " .. end_line)
+        vim.cmd("ClaudeCodeFocus")
+      end
+
+      -- Remap + and - for increment/decrement since we're using <C-a> and <C-x>
+      vim.keymap.set("n", "+", "<C-a>", { desc = "Increment", noremap = true })
+      vim.keymap.set("n", "-", "<C-x>", { desc = "Decrement", noremap = true })
+
+      -- <C-S-f> - Toggle Claude split width between 40% and 90%
+      local claude_expanded = false
+      vim.keymap.set("t", "<C-S-f>", function()
+        local ok, terminal = pcall(require, "claudecode.terminal")
+        if not ok then
+          return
+        end
+        local claude_bufnr = terminal.get_active_terminal_bufnr()
+        local current_bufnr = vim.api.nvim_get_current_buf()
+        if not (claude_bufnr and claude_bufnr == current_bufnr) then
+          return
+        end
+
+        local win = vim.api.nvim_get_current_win()
+        claude_expanded = not claude_expanded
+        if claude_expanded then
+          vim.api.nvim_win_set_width(win, math.floor(vim.o.columns * 0.9))
+        else
+          vim.api.nvim_win_set_width(win, math.floor(vim.o.columns * 0.4))
+        end
+      end, { desc = "Toggle Claude split width" })
+
+      -- Additional Claude-specific keymaps under <leader>a prefix
+      vim.keymap.set("n", "<leader>aR", "<cmd>ClaudeCode --resume<cr>", { desc = "Resume Claude" })
+      vim.keymap.set("n", "<leader>aC", "<cmd>ClaudeCode --continue<cr>", { desc = "Continue Claude" })
+      vim.keymap.set("n", "<leader>am", "<cmd>ClaudeCodeSelectModel<cr>", { desc = "Select Claude model" })
+      vim.keymap.set("n", "<leader>aa", "<cmd>ClaudeCodeDiffAccept<cr>", { desc = "Accept diff" })
+      vim.keymap.set("n", "<leader>ad", "<cmd>ClaudeCodeDiffDeny<cr>", { desc = "Deny diff" })
+      vim.keymap.set("n", "<leader>aS", "<cmd>ClaudeCodeStatus<cr>", { desc = "Claude status" })
+      vim.keymap.set({ "n", "x" }, "<leader>ab", "<cmd>ClaudeCodeAdd %<cr>", { desc = "Add buffer to Claude" })
+    end,
+  },
+  {
     "NickvanDyke/opencode.nvim",
+    enabled = false,
     dependencies = {
       -- Recommended for `ask()` and `select()`.
       -- Required for `snacks` provider.
       ---@module 'snacks' <- Loads `snacks.nvim` types for configuration intellisense.
-      { "folke/snacks.nvim", opts = { input = {}, picker = {} } },
+      { "folke/snacks.nvim", opts = { input = {}, picker = {}, terminal = {} } },
     },
     config = function()
       ---@type opencode.Opts
@@ -350,6 +544,34 @@ return {
   --   end,
   -- },
   { "catppuccin/nvim", name = "catppuccin", priority = 1000 },
+  {
+    "scalameta/nvim-metals",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    ft = { "scala", "sbt", "java" },
+    opts = function()
+      local metals_config = require("metals").bare_config()
+      metals_config.settings = {
+        showImplicitArguments = true,
+        showImplicitConversionsAndClasses = true,
+        showInferredType = true,
+        superMethodLensesEnabled = true,
+        excludedPackages = { "akka.actor.typed.javadsl", "com.github.swagger.akka.javadsl" },
+      }
+      metals_config.init_options.statusBarProvider = "on"
+      metals_config.capabilities = require("blink.cmp").get_lsp_capabilities()
+      return metals_config
+    end,
+    config = function(self, metals_config)
+      local nvim_metals_group = vim.api.nvim_create_augroup("nvim-metals", { clear = true })
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = self.ft,
+        callback = function()
+          require("metals").initialize_or_attach(metals_config)
+        end,
+        group = nvim_metals_group,
+      })
+    end,
+  },
   {
     "pmizio/typescript-tools.nvim",
     dependencies = { "nvim-lua/plenary.nvim", "neovim/nvim-lspconfig" },
